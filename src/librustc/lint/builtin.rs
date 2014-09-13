@@ -977,7 +977,7 @@ impl LintPass for NonSnakeCase {
     }
 }
 
-declare_lint!(pub NON_UPPERCASE_STATICS, Allow,
+declare_lint!(pub NON_UPPERCASE_STATICS, Warn,
               "static constants should have uppercase identifiers")
 
 pub struct NonUppercaseStatics;
