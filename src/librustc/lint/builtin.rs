@@ -1496,6 +1496,7 @@ impl LintPass for Stability {
     fn check_expr(&mut self, cx: &Context, e: &ast::Expr) {
         // if the expression was produced by a macro expansion,
         if e.span.expn_id != NO_EXPANSION { return }
+        let mut span = e.span;
 
         let id = match e.node {
             ast::ExprPath(..) | ast::ExprStruct(..) => {
@@ -1504,7 +1505,8 @@ impl LintPass for Stability {
                     None => return
                 }
             }
-            ast::ExprMethodCall(..) => {
+            ast::ExprMethodCall(i, _, _) => {
+                span = i.span;
                 let method_call = typeck::MethodCall::expr(e.id);
                 match cx.tcx.method_map.borrow().find(&method_call) {
                     Some(method) => {
@@ -1561,7 +1563,7 @@ impl LintPass for Stability {
             _ => format!("use of {} item", label)
         };
 
-        cx.span_lint(lint, e.span, msg.as_slice());
+        cx.span_lint(lint, span, msg.as_slice());
     }
 }
 
