@@ -647,7 +647,7 @@ impl LintPass for UnusedAttribute {
     }
 }
 
-declare_lint!(PATH_STATEMENT, Warn,
+declare_lint!(pub PATH_STATEMENT, Warn,
               "path statements with no effect")
 
 pub struct PathStatement;
@@ -671,10 +671,10 @@ impl LintPass for PathStatement {
     }
 }
 
-declare_lint!(UNUSED_MUST_USE, Warn,
+declare_lint!(pub UNUSED_MUST_USE, Warn,
               "unused result of a type flagged as #[must_use]")
 
-declare_lint!(UNUSED_RESULT, Allow,
+declare_lint!(pub UNUSED_RESULT, Allow,
               "unused result of an expression in a statement")
 
 pub struct UnusedResult;
@@ -887,13 +887,17 @@ impl NonSnakeCase {
         fn to_snake_case(str: &str) -> String {
             let mut words = vec![];
             for s in str.split('_') {
+                let mut last_upper = false;
                 let mut buf = String::new();
                 if s.is_empty() { continue; }
                 for ch in s.chars() {
-                    if !buf.is_empty() && buf.as_slice() != "'" && ch.is_uppercase() {
+                    if !buf.is_empty() && buf.as_slice() != "'"
+                                       && ch.is_uppercase()
+                                       && !last_upper {
                         words.push(buf);
                         buf = String::new();
                     }
+                    last_upper = ch.is_uppercase();
                     buf.push_char(ch.to_lowercase());
                 }
                 words.push(buf);
@@ -977,7 +981,7 @@ impl LintPass for NonSnakeCase {
     }
 }
 
-declare_lint!(pub NON_UPPERCASE_STATICS, Allow,
+declare_lint!(pub NON_UPPERCASE_STATICS, Warn,
               "static constants should have uppercase identifiers")
 
 pub struct NonUppercaseStatics;
@@ -1149,7 +1153,7 @@ impl LintPass for UnnecessaryImportBraces {
     }
 }
 
-declare_lint!(UNUSED_UNSAFE, Warn,
+declare_lint!(pub UNUSED_UNSAFE, Warn,
               "unnecessary use of an `unsafe` block")
 
 pub struct UnusedUnsafe;
@@ -1492,6 +1496,7 @@ impl LintPass for Stability {
     fn check_expr(&mut self, cx: &Context, e: &ast::Expr) {
         // if the expression was produced by a macro expansion,
         if e.span.expn_id != NO_EXPANSION { return }
+        let mut span = e.span;
 
         let id = match e.node {
             ast::ExprPath(..) | ast::ExprStruct(..) => {
@@ -1500,7 +1505,8 @@ impl LintPass for Stability {
                     None => return
                 }
             }
-            ast::ExprMethodCall(..) => {
+            ast::ExprMethodCall(i, _, _) => {
+                span = i.span;
                 let method_call = typeck::MethodCall::expr(e.id);
                 match cx.tcx.method_map.borrow().find(&method_call) {
                     Some(method) => {
@@ -1557,7 +1563,7 @@ impl LintPass for Stability {
             _ => format!("use of {} item", label)
         };
 
-        cx.span_lint(lint, e.span, msg.as_slice());
+        cx.span_lint(lint, span, msg.as_slice());
     }
 }
 
